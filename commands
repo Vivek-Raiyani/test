@@ -1,0 +1,35 @@
+-- Create virtual environment  
+python -m venv env  
+
+-- Activate virtual environment (Windows)  
+env\Scripts\activate  
+
+-- Activate virtual environment (Linux/Mac)  
+source env/bin/activate  
+
+-- Create a requirements.txt file (freeze installed packages)  
+pip freeze > requirements.txt  
+
+-- Install libraries from requirements.txt  
+pip install -r requirements.txt  
+
+-- Create a Django project  
+django-admin startproject <project_name>  
+
+-- Create an app inside the project  
+python manage.py startapp <app_name>  
+
+-- Run development server  
+python manage.py runserver  
+
+-- Make database migrations (generate migration files)  
+python manage.py makemigrations  
+
+-- Apply migrations (update database schema)  
+python manage.py migrate  
+
+-- Create a superuser (admin access)  
+python manage.py createsuperuser  
+
+-- Collect static files (for production)  
+python manage.py collectstatic  
