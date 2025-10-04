@@ -11,11 +11,13 @@ def dashboard(request):
     try:
         user_data = UserData.objects.get(user=request.user)
         
-        # Redirect employees to their specific dashboard
+        # Redirect users to their specific dashboard based on role
         if user_data.role == 'Employee':
             return redirect('core:employee_dashboard')
-        # For now, show the general dashboard for other roles
-        # Later we can add manager and admin dashboards
+        elif user_data.role == 'Manager':
+            return redirect('core:manager_dashboard')
+        elif user_data.role == 'Admin':
+            return redirect('core:admin_dashboard')
         else:
             return render(request, 'core/dashboard.html')
             

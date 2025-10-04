@@ -1,0 +1,374 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Finora Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.5/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/admin_styles.css' %}" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{% url 'core:admin_dashboard' %}">
+                <i class="fas fa-chart-line me-2"></i>Finora Admin
+            </a>
+            
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ user_data.name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'uaer_app:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:admin_dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'core:admin_users' %}">
+                                <i class="fas fa-users me-2"></i>
+                                User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:admin_approval_rules' %}">
+                                <i class="fas fa-cog me-2"></i>
+                                Approval Rules
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:employee_dashboard' %}">
+                                <i class="fas fa-user me-2"></i>
+                                Employee View
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:manager_dashboard' %}">
+                                <i class="fas fa-user-tie me-2"></i>
+                                Manager View
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">User Management</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                            <i class="fas fa-plus me-1"></i>Add New User
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">All Users in {{ user_data.company.name }}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="usersTable" width="100%" cellspacing="0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Manager</th>
+                                        <th>Email</th>
+                                        <th>Joined</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user_data in all_users %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ user_data.name|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ user_data.name }}</div>
+                                                    <small class="text-muted">ID: {{ user_data.id }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if user_data.role == 'Admin' %}danger{% elif user_data.role == 'Manager' %}success{% else %}primary{% endif %} fs-6">
+                                                {{ user_data.role }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if user_data.manager %}
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-sm bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                        {{ user_data.manager.name|first|upper }}
+                                                    </div>
+                                                    {{ user_data.manager.name }}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No Manager</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user_data.email }}</td>
+                                        <td>{{ user_data.created_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="sendPassword('{{ user_data.id }}')" title="Send Password">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" onclick="viewRules('{{ user_data.id }}')" title="Approval Rules">
+                                                    <i class="fas fa-cog"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" onclick="editUser('{{ user_data.id }}')" title="Edit User">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('{{ user_data.id }}', '{{ user_data.name }}')" title="Delete User">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addUserForm">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">Role *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Select Role</option>
+                                    <option value="Employee">Employee</option>
+                                    <option value="Manager">Manager</option>
+                                </select>
+                                <div class="form-text">Note: Admin role can only be assigned by other admins</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="manager" class="form-label">Manager</label>
+                                <select class="form-select" id="manager" name="manager">
+                                    <option value="">Select Manager (Optional)</option>
+                                    {% for manager in managers %}
+                                    <option value="{{ manager.id }}">{{ manager.name }} ({{ manager.role }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            A temporary password will be auto-generated and sent to the user's email address.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Confirmation Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Confirm Delete User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This action cannot be undone. All associated data will be permanently deleted.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteUser">Delete User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/admin_scripts.js' %}"></script>
+    <script>
+        // Add User Form Submission
+        document.getElementById('addUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const addUserBtn = this.querySelector('button[type="submit"]');
+            
+            addUserBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+            addUserBtn.disabled = true;
+            
+            fetch('{% url "core:admin_add_user" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    document.getElementById('addUserModal').querySelector('.btn-close').click();
+                    this.reset();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('danger', data.error);
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'An error occurred while adding the user');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                addUserBtn.innerHTML = '<i class="fas fa-plus me-1"></i>Add User';
+                addUserBtn.disabled = false;
+            });
+        });
+
+        function sendPassword(userId) {
+            if (!confirm('Send a new password to this user?')) return;
+
+            fetch(`{% url "core:admin_send_password" user_id=0 %}`.replace('0', userId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                } else {
+                    showAlert('danger', data.error);
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'An error occurred while sending password');
+                console.error('Error:', error);
+            });
+        }
+
+        function viewRules(userId) {
+            window.location.href = `{% url 'core:admin_approval_rules' %}?user=${userId}`;
+        }
+
+        function editUser(userId) {
+            showAlert('info', 'Edit user functionality will be implemented soon');
+        }
+
+        function deleteUser(userId, userName) {
+            document.getElementById('deleteUserName').textContent = userName;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            
+            document.getElementById('confirmDeleteUser').onclick = function() {
+                fetch(`{% url "core:admin_delete_user" user_id=0 %}`.replace('0', userId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    deleteModal.hide();
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlert('danger', data.error);
+                    }
+                })
+                .catch(error => {
+                    deleteModal.hide();
+                    showAlert('danger', 'An error occurred while deleting the user');
+                    console.error('Error:', error);
+                });
+            };
+            
+            deleteModal.show();
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.btn-toolbar').parentElement;
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Reset modal when closed
+        document.getElementById('addUserModal').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('addUserForm').reset();
+        });
+    </script>
+</body>
+</html>
