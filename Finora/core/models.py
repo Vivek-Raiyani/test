@@ -19,7 +19,7 @@ class Expense(models.Model):
         self.save()
 
     def receipt_upload_path(instance, filename):
-        return f"{instance.user.company.name}/receipts/user_{instance.user.id}/{filename}"
+        return f"{instance.employee.company.name}/receipts/user_{instance.employee.id}/{filename}"
 
     # def validate_file_extension(value):
     #     import os
@@ -68,7 +68,7 @@ class Expense(models.Model):
         ordering = ['-date', '-created_at']
 
     def __str__(self):
-        return f"{self.user.name} - {self.category} - {self.amount} - {self.status}"
+        return f"{self.employee.name} - {self.category} - {self.amount} - {self.status}"
 
 
 class ExpenseApproval(models.Model):

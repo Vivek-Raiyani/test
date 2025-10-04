@@ -24,7 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('user_app.urls')),
     path('core/',include('core.urls')),
-    path('', views.index, name='index'),  # homepage
+    path('', include('Frontend.urls')),  # homepage
 ]
 
 if settings.DEBUG:  # serve media only in dev
