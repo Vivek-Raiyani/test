@@ -1,0 +1,551 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approval Rules - Finora Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.5/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/admin_styles.css' %}" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{% url 'core:admin_dashboard' %}">
+                <i class="fas fa-chart-line me-2"></i>Finora Admin
+            </a>
+            
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ user_data.name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'user_app:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:admin_dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:admin_users' %}">
+                                <i class="fas fa-users me-2"></i>
+                                User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'core:admin_approval_rules' %}">
+                                <i class="fas fa-cog me-2"></i>
+                                Approval Rules
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:employee_dashboard' %}">
+                                <i class="fas fa-user me-2"></i>
+                                Employee View
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:manager_dashboard' %}">
+                                <i class="fas fa-user-tie me-2"></i>
+                                Manager View
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Approval Rules Management</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                            <i class="fas fa-plus me-1"></i>Add New Rule
+                        </button>
+                    </div>
+                </div>
+
+                <!-- User Selection -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Select User to Configure Approval Rules</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="userSelect" class="form-label">User</label>
+                                <select class="form-select" id="userSelect" onchange="loadUserRules()">
+                                    <option value="">Select a user to manage approval rules</option>
+                                    {% for user_data in all_users %}
+                                    <option value="{{ user_data.id }}">{{ user_data.name }} ({{ user_data.role }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Current Manager</label>
+                                <div id="currentManager" class="form-control-plaintext">
+                                    Select a user to view their current manager
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approval Rules Form -->
+                <div class="card shadow" id="rulesForm" style="display: none;">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Configure Approval Rules - <span id="selectedUserName"></span></h6>
+                    </div>
+                    <form id="approvalRulesForm">
+                        {% csrf_token %}
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="description" class="form-label">Rule Description *</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" required
+                                              placeholder="Describe this approval rule, e.g., 'Expenses under $500 require manager approval'"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="manager" class="form-label">Direct Manager</label>
+                                    <select class="form-select" id="manager" name="manager">
+                                        <option value="">No Manager</option>
+                                        {% for manager in managers %}
+                                        {% if manager.role != 'Employee' %}
+                                        <option value="{{ manager.id }}">{{ manager.name }} ({{ manager.role }})</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="managerApproval" name="manager_approval">
+                                        <label class="form-check-label" for="managerApproval">
+                                            Require Manager Approval
+                                        </label>
+                                        <div class="form-text">When checked, the direct manager must approve expenses</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Additional Approvers</label>
+                                    <div class="border rounded p-3">
+                                        <small class="text-muted mb-3 d-block">Select additional users who can approve expenses for this person</small>
+                                        {% for manager in managers %}
+                                        {% if manager.role != 'Employee' %}
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input approver-checkbox" type="checkbox" value="{{ manager.id }}" 
+                                                   id="approver_{{ manager.id }}">
+                                            <input type="hidden" name="approver_ids[]" value="0">
+                                            <label class="form-check-label" for="approver_{{ manager.id }}">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-sm bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                        {{ manager.name|first|upper }}
+                                                    </div>
+                                                    {{ manager.name }} ({{ manager.role }})
+                                                </div>
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="approvalSequence" name="approval_sequence">
+                                        <label class="form-check-label" for="approvalSequence">
+                                            Sequential Approval Required
+                                        </label>
+                                        <div class="form-text">Approvers must approve in a specific order</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="minApprovalPercentage" class="form-label">Auto-Approve at Percentage</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="minApprovalPercentage" name="min_approval_percentage" 
+                                               min="0" max="100" value="51">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="form-text">Auto-approve when this percentage of approvers approve (default: 51%)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <input type="hidden" id="userId" name="user_id">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save Approval Rules
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                <i class="fas fa-undo me-1"></i>Reset
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="deleteRule()" id="deleteRuleBtn" style="display: none;">
+                                <i class="fas fa-trash me-1"></i>Delete Rule
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Existing Rules Overview -->
+                <div class="card shadow mt-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">All Approval Rules Overview</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Description</th>
+                                        <th>Manager</th>
+                                        <th>Manager Approval</th>
+                                        <th>Additional Approvers</th>
+                                        <th>Sequential</th>
+                                        <th>Auto-Approve %</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rule in approval_rules %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ rule.employee.name|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ rule.employee.name }}</div>
+                                                    <small class="text-muted">{{ rule.employee.role }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ rule.description|truncatechars:50 }}</td>
+                                        <td>
+                                            {% if rule.manager %}
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-sm bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                        {{ rule.manager.name|first|upper }}
+                                                    </div>
+                                                    {{ rule.manager.name }}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No Manager</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if rule.manager_approval %}success{% else %}secondary{% endif %}">
+                                                {% if rule.manager_approval %}Required{% else %}Not Required{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if rule.approvers.exists %}
+                                                {% for approver in rule.approvers.all %}
+                                                    <span class="badge bg-info me-1">{{ approver.name }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if rule.approval_sequence %}warning{% else %}secondary{% endif %}">
+                                                {% if rule.approval_sequence %}Yes{% else %}No{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ rule.min_approval_percentage }}%</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editRule('{{ rule.employee.id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteRuleConfirm('{{ rule.id }}', '{{ rule.employee.name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Delete Rule Confirmation Modal -->
+    <div class="modal fade" id="deleteRuleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Confirm Delete Rule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Are you sure you want to delete approval rule for <strong id="deleteRuleUserName"></strong>?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This action cannot be undone. The user will have no approval rules after deletion.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteRule">Delete Rule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/admin_scripts.js' %}"></script>
+    <script>
+        let currentRuleId = null;
+        let currentUserId = null;
+
+        // Load rules for selected user
+        function loadUserRules() {
+            const userId = document.getElementById('userSelect').value;
+            if (!userId) {
+                document.getElementById('rulesForm').style.display = 'none';
+                document.getElementById('currentManager').textContent = 'Select a user to view their current manager';
+                return;
+            }
+
+            currentUserId = userId;
+            
+            // Update selected user name
+            const selectedUserOption = document.getElementById('userSelect').selectedOptions[0];
+            document.getElementById('selectedUserName').textContent = selectedUserOption.textContent.split(' (')[0];
+
+            // Get user's current manager
+            fetch(`{% url 'core:admin_get_user_rules' user_id=0 %}`.replace('0', userId))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update current manager display
+                    const userSelect = document.getElementById('userSelect');
+                    const selectedUser = userSelect.options[userSelect.selectedIndex].textContent;
+                    
+                    // Extract user name
+                    const userName = selectedUser.split(' (')[0];
+                    document.getElementById('currentManager').textContent = 'Loading...';
+                    
+                    // Set user ID
+                    document.getElementById('userId').value = userId;
+                    
+                    if (data.rules) {
+                        // Fill form with existing rules
+                        document.getElementById('description').value = data.rules.description;
+                        document.getElementById('manager').value = data.rules.manager_id || '';
+                        document.getElementById('managerApproval').checked = data.rules.manager_approval;
+                        document.getElementById('approvalSequence').checked = data.rules.approval_sequence;
+                        document.getElementById('minApprovalPercentage').value = data.rules.min_approval_percentage;
+                        
+                        // Clear existing approvers
+                        document.querySelectorAll('.approver-checkbox').forEach(cb => cb.checked = false);
+                        document.querySelectorAll('input[name="approver_ids[]"]').forEach(input => input.value = '0');
+                        
+                        // Set approvers
+                        data.rules.approvers.forEach(approver => {
+                            const checkbox = document.getElementById('approver_' + approver.id);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                                checkbox.nextElementSibling.nextElementSibling.value = approver.id;
+                            }
+                        });
+                        
+                        document.getElementById('deleteRuleBtn').style.display = 'inline-block';
+                        currentRuleId = data.rules.id;
+                    } else {
+                        // Reset form for new rule
+                        resetForm();
+                    }
+                    
+                    document.getElementById('rulesForm').style.display = 'block';
+                    document.getElementById('currentManager').textContent = data.rules ? 
+                        (data.rules.manager_name === 'No Manager' ? 'No assigned manager' : data.rules.manager_name) : 
+                        'Loading...';
+                } else {
+                    showAlert('danger', data.error);
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'An error occurred while loading user rules');
+                console.error('Error:', error);
+            });
+        }
+
+        // Handle approver checkbox changes
+        document.querySelectorAll('.approver-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const hiddenInput = this.nextElementSibling.nextElementSibling;
+                hiddenInput.value = this.checked ? this.value : '0';
+            });
+        });
+
+        // Form submission
+        document.getElementById('approvalRulesForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+            submitBtn.disabled = true;
+            
+            const formData = new FormData(this);
+            
+            fetch('{% url "core:admin_save_approval_rules" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Reload the page to refresh the overview table
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('danger', data.error);
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'An error occurred while saving approval rules');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Approval Rules';
+                submitBtn.disabled = false;
+            });
+        });
+
+        function resetForm() {
+            document.getElementById('approvalRulesForm').reset();
+            document.getElementById('deleteRuleBtn').style.display = 'none';
+            currentRuleId = null;
+        }
+
+        function editRule(userId) {
+            document.getElementById('userSelect').value = userId;
+            loadUserRules();
+            document.getElementById('rulesForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteRule() {
+            if (!currentRuleId || !confirm('Are you sure you want to delete this approval rule?')) return;
+
+            fetch(`{% url 'core:admin_delete_rule' rule_id=0 %}`.replace('0', currentRuleId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    resetForm();
+                    loadUserRules();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('danger', data.error);
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'An error occurred while deleting the rule');
+                console.error('Error:', error);
+            });
+        }
+
+        function deleteRuleConfirm(ruleId, userName) {
+            document.getElementById('deleteRuleUserName').textContent = userName;
+            currentRuleId = ruleId;
+            
+            document.getElementById('confirmDeleteRule').onclick = function() {
+                fetch(`{% url 'core:admin_delete_rule' rule_id=0 %}`.replace('0', ruleId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlert('danger', data.error);
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', 'An error occurred while deleting the rule');
+                    console.error('Error:', error);
+                });
+                
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteRuleModal'));
+                deleteModal.hide();
+            };
+            
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteRuleModal'));
+            deleteModal.show();
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.btn-toolbar').parentElement;
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Handle URL parameter for direct user selection
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('user');
+            if (userId) {
+                document.getElementById('userSelect').value = userId;
+                loadUserRules();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -33,3 +33,10 @@ python manage.py createsuperuser
 
 -- Collect static files (for production)  
 python manage.py collectstatic  
+
+Setup Done
+
+admin credentials
+username - admin
+email - vivek16903@gmail.com
+password - 12345678
