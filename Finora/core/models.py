@@ -5,6 +5,19 @@ from user_app.models import UserData, CompanyData
 
 class Expense(models.Model):
 
+    def update_status_from_approvals(self):
+        approvals = self.approvals.all()
+        if approvals.exists():
+            if all(a.status == 'Approved' for a in approvals):
+                self.status = 'Approved'
+            elif any(a.status == 'Rejected' for a in approvals):
+                self.status = 'Rejected'
+            elif any(a.status == 'Pending' for a in approvals):
+                self.status = 'Pending'
+        else:
+            self.status = 'Draft'
+        self.save()
+
     def receipt_upload_path(instance, filename):
         return f"{instance.user.company.name}/receipts/user_{instance.user.id}/{filename}"
 
@@ -57,6 +70,7 @@ class Expense(models.Model):
     def __str__(self):
         return f"{self.user.name} - {self.category} - {self.amount} - {self.status}"
 
+
 class ExpenseApproval(models.Model):
     STATUS_CHOICES = [
         ('Draft', 'Draft'),
@@ -75,9 +89,10 @@ class ExpenseApproval(models.Model):
 
 
 class ApprovalRules(models.Model):
-    employee = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='approval_rules')
+    employee = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='employee_approval_rules')
     description = models.TextField()
-    manager = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='approval_rules')
+    manager = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='manager_approval_rules')
     manager_approval = models.BooleanField(default=False)
-    approvers = models.ManyToManyField(UserData, related_name='approval_rules')
+    approvers = models.ManyToManyField(UserData, related_name='approver_approval_rules')
     approval_sequence = models.BooleanField(default=False)
+    min_approval_percentage = models.IntegerField(default=51)

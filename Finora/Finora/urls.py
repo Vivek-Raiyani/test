@@ -22,7 +22,8 @@ from Frontend import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('user_app.urls')),
+    path('user/', include('user_app.urls')),
+    path('core/',include('core.urls')),
     path('', views.index, name='index'),  # homepage
 ]
 
