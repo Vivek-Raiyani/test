@@ -1,0 +1,235 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approval Rules - Finora Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/admin_styles.css' %}" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{% url 'admin_dashboard' %}">
+                <i class="fas fa-chart-line me-2"></i>Finora Admin
+            </a>
+            
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_users' %}">
+                                <i class="fas fa-users me-2"></i>
+                                User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_expenses' %}">
+                                <i class="fas fa-receipt me-2"></i>
+                                Expense Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'admin_approvals' %}">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Approvals
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_reports' %}">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Approval Rules Configuration</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                            <i class="fas fa-plus me-1"></i>Add New Rule
+                        </button>
+                    </div>
+                </div>
+
+                <!-- User Selection -->
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Select User for Approval Rules</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="userSelect" class="form-label">User</label>
+                                <select class="form-select" id="userSelect" onchange="loadUserRules()">
+                                    <option value="">Select User</option>
+                                    {% for user_data in all_users %}
+                                    <option value="{{ user_data.id }}">{{ user_data.name }} ({{ user_data.role }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approval Rules Form -->
+                <div class="card shadow" id="rulesForm" style="display: none;">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Approval Rules Configuration</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{% url 'save_approval_rules' %}">
+                            {% csrf_token %}
+                            <input type="hidden" id="selectedUserId" name="user_id">
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label for="description" class="form-label">Description about rules</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" placeholder="Approval rule for miscellaneous expenses"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="manager" class="form-label">Manager</label>
+                                    <select class="form-select" id="manager" name="manager">
+                                        <option value="">Select Manager</option>
+                                        {% for manager in managers %}
+                                        <option value="{{ manager.id }}">{{ manager.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Dynamic dropdown. Initially the manager set on user record should be set, admin can change manager for approval if required.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="managerApproval" name="manager_approval">
+                                        <label class="form-check-label" for="managerApproval">
+                                            Is manager an approver?
+                                        </label>
+                                        <div class="form-text">IF this field is checked then by default the approve request would go to his/her manager first, before going to other approvers.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Approvers</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>User</th>
+                                                    <th>Required</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="approversTable">
+                                                <!-- Dynamic rows will be added here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addApprover()">
+                                        <i class="fas fa-plus me-1"></i>Add Approver
+                                    </button>
+                                    <div class="form-text">If the Required field is ticked, then anyhow approval of this approver is required in any approval combination scenarios.</div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="approvalSequence" name="approval_sequence">
+                                        <label class="form-check-label" for="approvalSequence">
+                                            Approvers Sequence
+                                        </label>
+                                        <div class="form-text">If this field is ticked true then the above mentioned sequence of approvers matters, that is first the request goes to John, if he approves/rejects then only request goes to mitchell and so on. If the required approver rejects the request, then expense request is auto-rejected. If not ticked then send approver request to all approvers at the same time.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="minApprovalPercentage" class="form-label">Minimum Approval percentage</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="minApprovalPercentage" name="min_approval_percentage" min="0" max="100" value="51">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-secondary me-2" onclick="resetForm()">Reset</button>
+                                <button type="submit" class="btn btn-primary">Save Rules</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Existing Rules Table -->
+                <div class="card shadow mt-4" id="existingRules" style="display: none;">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Existing Approval Rules</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th>Manager</th>
+                                        <th>Manager Approval</th>
+                                        <th>Approvers</th>
+                                        <th>Sequence</th>
+                                        <th>Min %</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rulesTableBody">
+                                    <!-- Dynamic content will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/admin_scripts.js' %}"></script>
+</body>
+</html>

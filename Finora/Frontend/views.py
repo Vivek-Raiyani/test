@@ -1,6 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.core.mail import send_mail
 from django.http import HttpResponse
+# from django.contrib.auth.decorators import login_required
+from user_app.models import UserData
 
 def send_test_email(request):
     send_mail(
@@ -12,6 +14,14 @@ def send_test_email(request):
     )
 
 def index(request):
+    if request.user.is_authenticated:
+        try:
+            user_data = UserData.objects.get(user=request.user)
+            if user_data.role == 'Admin':
+                return redirect('admin_dashboard')
+        except UserData.DoesNotExist:
+            pass
+    
     print("Sending test email")
     # send_test_email(request)
     print("Test email sent successfully")

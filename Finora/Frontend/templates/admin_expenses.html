@@ -1,0 +1,298 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Management - Finora Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'css/admin_styles.css' %}" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{% url 'admin_dashboard' %}">
+                <i class="fas fa-chart-line me-2"></i>Finora Admin
+            </a>
+            
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_users' %}">
+                                <i class="fas fa-users me-2"></i>
+                                User Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="{% url 'admin_expenses' %}">
+                                <i class="fas fa-receipt me-2"></i>
+                                Expense Management
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_approvals' %}">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Approvals
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_reports' %}">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Reports
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Expense Management</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportToCSV('expensesTable', 'expenses.csv')">
+                                <i class="fas fa-download me-1"></i>Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Section -->
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="statusFilter" class="form-label">Status</label>
+                                <select class="form-select" id="statusFilter" onchange="filterTable()">
+                                    <option value="">All Status</option>
+                                    <option value="Draft">Draft</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="categoryFilter" class="form-label">Category</label>
+                                <select class="form-select" id="categoryFilter" onchange="filterTable()">
+                                    <option value="">All Categories</option>
+                                    <option value="Travel">Travel</option>
+                                    <option value="Food">Food</option>
+                                    <option value="Office Supplies">Office Supplies</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="searchInput" class="form-label">Search</label>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search expenses..." onkeyup="searchTable('searchInput', 'expensesTable')">
+                            </div>
+                            <div class="col-md-3 mb-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Table -->
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">All Expenses</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="expensesTable" width="100%" cellspacing="0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in expenses %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ expense.employee.name|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ expense.employee.name }}</div>
+                                                    <small class="text-muted">{{ expense.employee.role }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 200px;" title="{{ expense.description }}">
+                                                {{ expense.description }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold">{{ expense.currency }} {{ expense.amount }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ expense.category }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if expense.status == 'Approved' %}success{% elif expense.status == 'Rejected' %}danger{% elif expense.status == 'Pending' %}warning{% else %}secondary{% endif %}">
+                                                {{ expense.status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ expense.date }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-info" onclick="viewExpense({{ expense.id }})" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                {% if expense.receipt %}
+                                                <button class="btn btn-sm btn-outline-primary" onclick="viewReceipt('{{ expense.receipt.url }}')" title="View Receipt">
+                                                    <i class="fas fa-file-image"></i>
+                                                </button>
+                                                {% endif %}
+                                                {% if expense.status == 'Pending' %}
+                                                <button class="btn btn-sm btn-outline-success" onclick="approveExpense({{ expense.id }})" title="Approve">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="rejectExpense({{ expense.id }})" title="Reject">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Expense Details Modal -->
+    <div class="modal fade" id="expenseModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Expense Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="expenseDetails">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/admin_scripts.js' %}"></script>
+    <script>
+        // Additional functions for expense management
+        function viewExpense(expenseId) {
+            // Load expense details via AJAX
+            fetch(`/admin/expense-details/${expenseId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('expenseDetails').innerHTML = data.html;
+                    new bootstrap.Modal(document.getElementById('expenseModal')).show();
+                })
+                .catch(error => {
+                    console.error('Error loading expense details:', error);
+                });
+        }
+        
+        function viewReceipt(receiptUrl) {
+            window.open(receiptUrl, '_blank');
+        }
+        
+        function approveExpense(expenseId) {
+            if (confirm('Are you sure you want to approve this expense?')) {
+                // Implement approval logic
+                console.log('Approving expense:', expenseId);
+            }
+        }
+        
+        function rejectExpense(expenseId) {
+            if (confirm('Are you sure you want to reject this expense?')) {
+                // Implement rejection logic
+                console.log('Rejecting expense:', expenseId);
+            }
+        }
+        
+        function filterTable() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const table = document.getElementById('expensesTable');
+            const rows = table.getElementsByTagName('tr');
+            
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const statusCell = row.cells[4].textContent.trim();
+                const categoryCell = row.cells[3].textContent.trim();
+                
+                let showRow = true;
+                
+                if (statusFilter && statusCell !== statusFilter) {
+                    showRow = false;
+                }
+                
+                if (categoryFilter && categoryCell !== categoryFilter) {
+                    showRow = false;
+                }
+                
+                row.style.display = showRow ? '' : 'none';
+            }
+        }
+        
+        function clearFilters() {
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            filterTable();
+        }
+    </script>
+</body>
+</html>
